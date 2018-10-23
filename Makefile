@@ -1,7 +1,7 @@
 
 CFLAGS := -pipe -O2 -Wall -ggdb3
 KDIR := /lib/modules/$(shell uname -r)/source
-CPPFLAGS := -I $(KDIR)/tools/lib -I $(KDIR)/tools/testing/selftests
+CPPFLAGS := -I $(KDIR)/tools/lib
 #LDFLAGS := -L $(KDIR)/tools/lib/bpf
 #LDLIBS := -lbpf -lelf
 LDLIBS := -lelf

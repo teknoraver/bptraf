@@ -27,10 +27,10 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <linux/if.h>
+#include <sys/sysinfo.h>
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
-#include <bpf/bpf_util.h>
 
 #include "common.h"
 
@@ -55,7 +55,7 @@ static char *protocols[] = {
 
 static void stats(int fd, int interval)
 {
-	unsigned int nr_cpus = bpf_num_possible_cpus();
+	unsigned int nr_cpus = get_nprocs_conf();
 	struct trafdata values[nr_cpus], tot[_MAX_PROTO] = { 0 };
 	int i;
 
