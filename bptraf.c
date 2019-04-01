@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include <net/if.h>
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <sys/sysinfo.h>
@@ -87,29 +88,14 @@ int main(int argc, char *argv[])
 		.prog_type	= BPF_PROG_TYPE_XDP,
 		.file		= "kernel.o",
 	};
-	struct ifreq ifr = { 0 };
 	struct bpf_object *obj;
 	struct bpf_map *map;
 	int fd;
 
-	fd = socket(AF_UNIX, SOCK_DGRAM, 0);
-	if (fd == -1) {
-		perror("fdet");
-		return 1;
+	ifindex = if_nametoindex(argv[optind]);
+	if (!ifindex) {
+		perror("if_nametoindex");
 	}
-
-	if (strlen(argv[optind]) >= IFNAMSIZ) {
-		printf("invalid ifname '%s'\n", argv[optind]);
-		return 1;
-	}
-
-	strcpy(ifr.ifr_name, argv[optind]);
-	if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
-		perror("SIOCGIFINDEX");
-		return 1;
-	}
-	close(fd);
-	ifindex = ifr.ifr_ifindex;
 
 	if (bpf_prog_load_xattr(&prog_load_attr, &obj, &fd))
 		return 1;
