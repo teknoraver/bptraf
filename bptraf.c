@@ -92,6 +92,11 @@ int main(int argc, char *argv[])
 	struct bpf_map *map;
 	int fd;
 
+	if (argc != 2) {
+		printf("usage: %s <iface>\n", argv[0]);
+		return 0;
+	}
+
 	ifindex = if_nametoindex(argv[optind]);
 	if (!ifindex) {
 		perror("if_nametoindex");
