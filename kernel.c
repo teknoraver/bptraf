@@ -117,7 +117,7 @@ static enum protocols parse_ip(uint8_t proto)
 	return 0;
 }
 
-SEC("prog")
+SEC("xdp")
 int xdp_main(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(uintptr_t)ctx->data_end;
