@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <sys/sysinfo.h>
+#include <time.h>
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
@@ -36,6 +37,8 @@
 #include "common.h"
 
 static int ifindex;
+
+#define B 1000000000
 
 #define human(x) decimals(x), rounded(x), suffix(x)
 #define H ".*f %s"
@@ -102,33 +105,50 @@ static char *protocols[] = {
 	[SCTP] = "SCTP",
 };
 
+static uint64_t time_sub(struct timespec *since, struct timespec *to)
+{
+	if (to->tv_sec == since->tv_sec)
+		return to->tv_nsec - since->tv_nsec;
+
+	return (to->tv_sec - since->tv_sec) * B + to->tv_nsec - since->tv_nsec;
+}
+
 static void stats(int fd, int interval)
 {
 	unsigned int nr_cpus = get_nprocs_conf();
 	struct trafdata values[nr_cpus], tot[_MAX_PROTO] = { 0 };
+	uint64_t deltat;
 	int i;
+
+	struct timespec oldts, newts;
+
+	clock_gettime(CLOCK_MONOTONIC, &oldts);
 
 	while (1) {
 		unsigned key = UINT_MAX;
 
 		sleep(interval);
+		clock_gettime(CLOCK_MONOTONIC, &newts);
+		deltat = time_sub(&oldts, &newts);
 
 		while (bpf_map_get_next_key(fd, &key, &key) != -1) {
 			struct trafdata sum = { 0 };
 
 			bpf_map_lookup_elem(fd, &key, values);
+
 			for (i = 0; i < nr_cpus; i++) {
 				sum.packets += values[i].packets;
 				sum.bytes += values[i].bytes;
 			}
 			if (sum.packets > tot[key].packets) {
-				uint64_t pkts = (sum.packets - tot[key].packets) / interval;
-				uint64_t bytes = (sum.bytes - tot[key].bytes) * 8 / interval;
+				uint64_t pkts = (sum.packets - tot[key].packets) * B / deltat;
+				uint64_t bytes = (sum.bytes - tot[key].bytes) * 8 * B / deltat;
 				printf("%10s: %"H"pps %"H"bps\n",
 				       protocols[key], human(pkts), human(bytes));
 			}
 			tot[key] = sum;
 		}
+		oldts = newts;
 	}
 }
 
