@@ -113,7 +113,7 @@ static uint64_t time_sub(struct timespec *since, struct timespec *to)
 	return (to->tv_sec - since->tv_sec) * B + to->tv_nsec - since->tv_nsec;
 }
 
-static void stats(int fd, int interval)
+static void stats(int fd, useconds_t interval)
 {
 	unsigned int nr_cpus = get_nprocs_conf();
 	struct trafdata values[nr_cpus], tot[_MAX_PROTO] = { 0 };
@@ -127,7 +127,7 @@ static void stats(int fd, int interval)
 	while (1) {
 		unsigned key = UINT_MAX;
 
-		sleep(interval);
+		usleep(interval);
 		clock_gettime(CLOCK_MONOTONIC, &newts);
 		deltat = time_sub(&oldts, &newts);
 
@@ -152,6 +152,12 @@ static void stats(int fd, int interval)
 	}
 }
 
+static void __attribute__ ((noreturn)) usage(char *argv0, int ret)
+{
+	fprintf(ret ? stderr : stdout, "usage: %s [-i interval] iface\n", argv0);
+	exit(ret);
+}
+
 int main(int argc, char *argv[])
 {
 	struct bpf_prog_load_attr prog_load_attr = {
@@ -160,12 +166,20 @@ int main(int argc, char *argv[])
 	};
 	struct bpf_object *obj;
 	struct bpf_map *map;
+	int interval = 1000000, c;
 	int fd;
 
-	if (argc != 2) {
-		printf("usage: %s <iface>\n", argv[0]);
-		return 0;
-	}
+	while ((c = getopt(argc, argv, "hi:")) != -1)
+		switch (c) {
+		case 'h':
+			usage(argv[0], 0);
+		case 'i':
+			interval = atof(optarg) * 1000000;
+			break;
+		}
+
+	if (optind != argc - 1)
+		usage(argv[0], 1);
 
 	ifindex = if_nametoindex(argv[optind]);
 	if (!ifindex) {
@@ -197,7 +211,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, int_exit);
 	signal(SIGTERM, int_exit);
 
-	stats(fd, 1);
+	stats(fd, interval);
 
 	return 0;
 }
