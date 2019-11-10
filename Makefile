@@ -5,14 +5,14 @@ CPPFLAGS := -I $(KDIR)/tools/lib
 #LDFLAGS := -L $(KDIR)/tools/lib/bpf
 #LDLIBS := -lbpf -lelf
 LDLIBS := -lelf
-BIN := kernel.o bptraf
+BIN := bptraf kernel_traf.o kernel_drop.o
 
 all: $(BIN)
 
 bptraf: bptraf.c $(KDIR)/tools/lib/bpf/libbpf.a
 
-kernel.o: kernel.c
-	clang $(CFLAGS) -target bpf -c $< -o $@
+kernel_%.o: kernel_%.c
+	clang -O2 -Wall -ggdb3 -c -c $< -o - -emit-llvm |llc - -o $@ -march=bpf -filetype=obj
 
 clean::
 	$(RM) $(BIN)

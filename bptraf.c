@@ -162,19 +162,23 @@ int main(int argc, char *argv[])
 {
 	struct bpf_prog_load_attr prog_load_attr = {
 		.prog_type	= BPF_PROG_TYPE_XDP,
-		.file		= "kernel.o",
+		.file		= "kernel_traf.o",
 	};
 	struct bpf_object *obj;
 	struct bpf_map *map;
 	int interval = 1000000, c;
 	int fd;
 
-	while ((c = getopt(argc, argv, "hi:")) != -1)
+	while ((c = getopt(argc, argv, "hi:d")) != -1)
 		switch (c) {
 		case 'h':
 			usage(argv[0], 0);
+			break;
 		case 'i':
 			interval = atof(optarg) * 1000000;
+			break;
+		case 'd':
+			prog_load_attr.file = "kernel_drop.o";
 			break;
 		}
 
