@@ -37,6 +37,54 @@
 
 static int ifindex;
 
+#define human(x) decimals(x), rounded(x), suffix(x)
+#define H ".*f %s"
+
+static double rounded(uint64_t n)
+{
+	if (n >= 9999500000)
+		return n / 1000000000.0;
+	if (n >= 9999500)
+		return n / 1000000.0;
+	if (n > 9999)
+		return n / 1000.0;
+	return n;
+}
+
+static int decimals(uint64_t n)
+{
+	if (n >= 999950000000)
+		return 0;
+	if (n >= 99995000000)
+		return 1;
+	if (n >= 9999500000)
+		return 2;
+	if (n >= 999950000)
+		return 0;
+	if (n >= 99995000)
+		return 1;
+	if (n >= 9999500)
+		return 2;
+	if (n >= 999950)
+		return 0;
+	if (n >= 99995)
+		return 1;
+	if (n > 9999)
+		return 2;
+	return 0;
+}
+
+static char* suffix(uint64_t n)
+{
+	if (n >= 9999500000)
+		return "G";
+	if (n >= 9999500)
+		return "M";
+	if (n > 9999)
+		return "K";
+	return "";
+}
+
 static void int_exit(int sig)
 {
 	bpf_set_link_xdp_fd(ifindex, -1, 0);
@@ -73,10 +121,12 @@ static void stats(int fd, int interval)
 				sum.packets += values[i].packets;
 				sum.bytes += values[i].bytes;
 			}
-			if (sum.packets > tot[key].packets)
-				printf("%10s: %10lu kpps %10lu mbit\n",
-				       protocols[key], (sum.packets - tot[key].packets) / (interval * 1000),
-				       (sum.bytes - tot[key].bytes) / (interval * 125000));
+			if (sum.packets > tot[key].packets) {
+				uint64_t pkts = (sum.packets - tot[key].packets) / interval;
+				uint64_t bytes = (sum.bytes - tot[key].bytes) * 8 / interval;
+				printf("%10s: %"H"pps %"H"bps\n",
+				       protocols[key], human(pkts), human(bytes));
+			}
 			tot[key] = sum;
 		}
 	}
