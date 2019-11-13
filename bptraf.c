@@ -28,7 +28,6 @@
 #include <net/if.h>
 #include <sys/socket.h>
 #include <linux/if.h>
-#include <sys/sysinfo.h>
 #include <time.h>
 
 #include <bpf/bpf.h>
@@ -115,7 +114,7 @@ static uint64_t time_sub(struct timespec *since, struct timespec *to)
 
 static void stats(int fd, useconds_t interval)
 {
-	unsigned int nr_cpus = get_nprocs_conf();
+	unsigned int nr_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	struct trafdata values[nr_cpus], tot[_MAX_PROTO] = { 0 };
 	uint64_t deltat;
 	int i;
